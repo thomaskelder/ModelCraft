@@ -20,4 +20,9 @@ tcgaBrcaDataEntity = loadEntity('syn274561')
 tcgaBrcaData = tcgaBrcaDataEntity$objects$eset
 tcgaBrcaExpr = exprs(tcgaBrcaData)
 
-## TODO: add a Code object that refers to this script on GitHub
+## Add a Code object that refers to this script on GitHub (a specific revision)
+gitScript = Code(list(name = 'Synapse example script on GitHub', parentId = properties(modelCraftProject)$id))
+gitScript = createOrGetEntity(gitScript)
+
+gitScript = addGithubTag(gitScript, "https://raw.github.com/thomaskelder/ModelCraft/master/R/synapseClientExample.R")
+gitScript = updateEntity(gitScript)
