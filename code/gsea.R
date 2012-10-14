@@ -6,11 +6,9 @@ library(GSEABase)
 library(multicore)
 library(limma)
 
-# synapseLogin() ### not required if configured for automatic login
-trainingData = loadMetabricTrainingData()
+source("code/functions.R")
 
-edata = trainingData$exprData
-edata = exprs(edata)
+edata = exprDataToEntrez(trainingData$exprData)
 
 survTime = trainingData$clinicalSurvData[,1]
 survStatus = trainingData$clinicalSurvData[,2]
@@ -20,12 +18,8 @@ survStatus = trainingData$clinicalSurvData[,2]
 gsetsC2 = getGmt("data/c2.all.v3.0.entrez.gmt", geneIdType = EntrezIdentifier())
 gsetsC5 = getGmt("data/c5.all.v3.0.entrez.gmt", geneIdType = EntrezIdentifier())
 
-## Annotate expression data to entrez gene
-library(illuminaHumanv3.db)
-edata.entrez = unlist(mget(rownames(edata), illuminaHumanv3ENTREZID, ifnotfound=NA))
-rownames(edata) = edata.entrez
-edata = edata[!is.na(rownames(edata)),]
-edata = avereps(edata)
+gsets = append(gsetsC2, gsetsC5)
+names(gsets) = c(names(gsetsC2), names(gsetsC5))
 
 ## Limma on survival status
 design = model.matrix(~0 + factor(trainingData$clinicalSurvData[,2], levels = unique(trainingData$clinicalSurvData[,2])))
@@ -34,6 +28,12 @@ fit = lmFit(edata, design)
 contrast.matrix = makeContrasts(surv_1 - surv_0, levels = design)
 fit.eb = eBayes(contrasts.fit(fit, contrast.matrix))
 tscores = fit.eb$t[,1]
+
+## write lists based on top genes
+topgenes = topTable(fit.eb, number=nrow(edata))
+topgeneSets = as.list(topgenes[,"ID"])
+names(topgeneSets) = topgenes[,"ID"]
+save(topgeneSets, file = 'data/topgeneSets.RData')
 
 ## geneSetTest
 performGSEA = function(gsets) {
@@ -47,12 +47,31 @@ performGSEA = function(gsets) {
   names(enr) = names(gsets)
   enr
 }
-enrC2 = performGSEA(gsetsC2)
-sigC2 = gsetsC2[enrC2 < 1E-10]
-selectC2 = lapply(sigC2, geneIds)
-names(selectC2) = names(sigC2)
 
-enrC5 = performGSEA(gsetsC5)
-sigC5 = gsetsC5[enrC5 < 1E-5]
-selectC5 = lapply(sigC5, geneIds)
-names(selectC5) = names(sigC5)
+enr = performGSEA(gsets)
+enrSig = enr[enr < 1E-5]
+gsetSig = lapply(gsets[names(enrSig)], geneIds)
+names(gsetSig) = names(enrSig)
+
+## Prune gene sets based on overlap
+pruneByOverlap = function(pvals, gsets, maxOvl = 0.5) {
+  psort = sort(abs(pvals))
+  ssort = gsets[names(psort)]
+  include = names(psort)
+  for(sn in names(psort)) {
+    s1 = ssort[[sn]]
+    i = which(names(ssort) == sn)
+    if(!(sn %in% include)) next
+    ovl = sapply(ssort[(i+1):length(ssort)], function(s2) {
+      length(intersect(s1, s2)) / min(c(length(s1), length(s2)))
+    })
+    ovl[is.na(ovl)] = 0
+    include = setdiff(include, names(ovl)[ovl >= maxOvl])
+  }
+  include
+}
+
+gsetInclude = pruneByOverlap(enrSig, gsetSig)
+gsetTrain = gsetSig[gsetInclude]
+
+save(gsetTrain, file = "data/gSets.RData")

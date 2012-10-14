@@ -2,6 +2,9 @@ require(rms)
 require(MASS)
 require(survival)
 require(predictiveModeling)
+require(illuminaHumanv3.db)
+require(limma)
+source("code/functions.R")
 
 setRefClass(Class = "PredictiveModel")
 
@@ -45,28 +48,10 @@ RsfGSetModel = setRefClass(
     
     prepareData = function(exprData, copyData, clinicalFeaturesData) {
       message("Preparing data...")
-      ## Make clinical features data numeric
-      clinFormatted = apply(clinicalFeaturesData, 2, as.numeric)
-      for(cn in colnames(clinFormatted)) {
-        if(sum(is.na(clinFormatted[, cn])) == nrow(clinFormatted)) {
-          clinFormatted[, cn] = as.numeric(factor(clinicalFeaturesData[, cn]))
-        }
-      }
+      clinFormatted = formatClinical(clinicalFeaturesData)
       
-      ## Annotate expression data to entrez
-      edata = exprs(exprData)
-      edata.entrez = unlist(mget(rownames(edata), illuminaHumanv3ENTREZID, ifnotfound=NA))
-      rownames(edata) = edata.entrez
-      edata = edata[!is.na(rownames(edata)),]
-      edata = avereps(edata)
-      
-      ## Calculate set medians for gene expression
-      medExpr = lapply(exprSets, function(s) {
-        s = intersect(s, rownames(edata))
-        apply(edata[s,], 2, median, na.rm = T)
-      })
-      names(medExpr) = names(exprSets)
-      medExpr = as.data.frame(medExpr)
+      edata = exprDataToEntrez(exprData)
+      medExpr = medianSets(exprSets, edata)
       return(cbind(clinFormatted, medExpr))
     },
     copy = function() {
