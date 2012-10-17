@@ -38,8 +38,12 @@ medianSets = function(exprSets, edata) {
 }
 
 formatClinical = function(clinicalFeaturesData) {
+<<<<<<< HEAD
   clinFormatted = clinicalFeaturesData[, grep("NOT_IN_OSLOVAL", colnames(clinicalFeaturesData), invert = T)]
   clinFormatted = apply(clinFormatted, 2, as.numeric)
+=======
+  clinFormatted = apply(clinicalFeaturesData, 2, as.numeric)
+>>>>>>> bccb5d7e1d50791ebcdc4adaeb7e2087a9de9432
   for(cn in colnames(clinFormatted)) {
     if(sum(is.na(clinFormatted[, cn])) == nrow(clinFormatted)) {
       clinFormatted[, cn] = as.numeric(factor(clinicalFeaturesData[, cn]))

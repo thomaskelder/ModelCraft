@@ -6,12 +6,16 @@ require(illuminaHumanv3.db)
 require(limma)
 require(mice)
 
+<<<<<<< HEAD
 # if(!("mboost" %in% installed.packages()[,1])) {
 #   print("Downloading mboost")
 #   download.file('http://cran.r-project.org/src/contrib/mboost_2.1-3.tar.gz', destfile='mboost_2.1-3.tar.gz')
 #   print("Installing mboost")
 #   install.packages("mboost_2.1-3.tar.gz", repos=NULL)
 # }
+=======
+if(!("mboost" %in% installed.packages()[,1])) install.packages("mboost")
+>>>>>>> bccb5d7e1d50791ebcdc4adaeb7e2087a9de9432
 require(mboost)
 
 setRefClass(Class = "PredictiveModel")
@@ -49,11 +53,14 @@ GSetModel = setRefClass(
       else if(modelType == "glm") {
         fit = glmboost(y = Surv(survTime / 365, survStatus), x = as.matrix(trainData), family = CoxPH(), control = boost_control(mstop = iterations))
       }
+<<<<<<< HEAD
       else if(modelType == "gbm") {
         gbm.fit(as.matrix(trainData), clinicalSurvData, distribution="coxph", 
                 shrinkage=0.001, n.trees=iterations, interaction.depth=4, bag.fraction=0.8, 
                 train.fraction=1, verbose=T)
       }
+=======
+>>>>>>> bccb5d7e1d50791ebcdc4adaeb7e2087a9de9432
       .self$modelFit = fit
     },
     
@@ -64,9 +71,12 @@ GSetModel = setRefClass(
       else if(modelType == "glm") {
         predict(.self$modelFit, as.matrix(data))
       }
+<<<<<<< HEAD
       else if(modelType == "gbm") {
         predict(.self$modelFit, as.matrix(data), n.trees = iterations)
       }
+=======
+>>>>>>> bccb5d7e1d50791ebcdc4adaeb7e2087a9de9432
     },
     
     prepareData = function(exprData, copyData, clinicalFeaturesData) {
